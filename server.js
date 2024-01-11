@@ -7,7 +7,7 @@ const port = 3000;
 // Connect to Ethereum using Infura (replace YOUR_INFURA_API_KEY with your actual API key)
 const provider = new ethers.providers.JsonRpcProvider('');
 
-//const contractAddress = '';
+const contractAddress = '';
 const abi = [
 	{
 		"inputs": [
@@ -438,12 +438,17 @@ app.use(express.json());
 // API endpoints
 
 app.post('/mint', async (req, res) => {
-    const { to, amount, senderAddress } = req.body;
+    const senderAddress = req.headers.senderaddress || req.body.senderAddress;
+
+    if (!senderAddress) {
+        return res.status(400).json({ error: 'Sender address not provided' });
+    }
+    const { to, amount } = req.body;
     try {
         // const tx = await contract.mint(to, amount);
         // const receipt = await tx.wait();
 
-        //const privateKey = '';
+        const privateKey = '';
         const wallet = new ethers.Wallet(privateKey, provider);
 
         const contractWithSigner = contract.connect(wallet);
@@ -459,13 +464,26 @@ app.post('/mint', async (req, res) => {
 });
 
 app.post('/whitelistAccount', async (req, res) => {
+    const senderAddress = req.headers.senderaddress || req.body.senderAddress;
+
+    if (!senderAddress) {
+        return res.status(400).json({ error: 'Sender address not provided' });
+    }
+
     const { account } = req.body;
+
     try {
-        //const privateKey = '';
+        const fetchedOwnerAddress = await fetchOwnerAddress();
+        
+        if (senderAddress.toLowerCase() !== fetchedOwnerAddress.toLowerCase()) {
+            return res.status(403).json({ error: 'Unauthorized' });
+        }
+
+        const privateKey = '';
         const wallet = new ethers.Wallet(privateKey, provider);
 
         const contractWithSigner = contract.connect(wallet);
-        const tx = await contractWithSigner.mint(account);
+        const tx = await contractWithSigner.whitelistAccount(account ,{ from: senderAddress });
 
         const receipt = await tx.wait();
         res.json({ transactionHash: receipt.transactionHash });
@@ -475,13 +493,23 @@ app.post('/whitelistAccount', async (req, res) => {
 });
 
 app.post('/unwhitelistAccount', async (req, res) => {
+    const senderAddress = req.headers.senderaddress || req.body.senderAddress;
+
+    if (!senderAddress) {
+        return res.status(400).json({ error: 'Sender address not provided' });
+    }
     const { account } = req.body;
     try {
-        //const privateKey = '';
+        const fetchedOwnerAddress = await fetchOwnerAddress();
+        
+        if (senderAddress.toLowerCase() !== fetchedOwnerAddress.toLowerCase()) {
+            return res.status(403).json({ error: 'Unauthorized' });
+        }
+        const privateKey = '';
         const wallet = new ethers.Wallet(privateKey, provider);
 
         const contractWithSigner = contract.connect(wallet);
-        const tx = await contractWithSigner.unwhitelistAccount(account);
+        const tx = await contractWithSigner.unwhitelistAccount(account ,{ from: senderAddress });
 
         const receipt = await tx.wait();
         res.json({ transactionHash: receipt.transactionHash });
@@ -500,14 +528,24 @@ app.get('/getWhitelistedAccounts', async (req, res) => {
 });
 
 app.post('/distributeToWhitelist', async (req, res) => {
+    const senderAddress = req.headers.senderaddress || req.body.senderAddress;
+
+    if (!senderAddress) {
+        return res.status(400).json({ error: 'Sender address not provided' });
+    }
+
     const { amount } = req.body;
     try {
-
-        //const privateKey = '';
+        const fetchedOwnerAddress = await fetchOwnerAddress();
+        
+        if (senderAddress.toLowerCase() !== fetchedOwnerAddress.toLowerCase()) {
+            return res.status(403).json({ error: 'Unauthorized' });
+        }
+        const privateKey = '';
         const wallet = new ethers.Wallet(privateKey, provider);
 
         const contractWithSigner = contract.connect(wallet);
-        const tx = await contractWithSigner.distributeToWhitelist(amount);
+        const tx = await contractWithSigner.distributeToWhitelist(amount ,{ from: senderAddress });
 
         const receipt = await tx.wait();
         res.json({ transactionHash: receipt.transactionHash });
@@ -517,12 +555,23 @@ app.post('/distributeToWhitelist', async (req, res) => {
 });
 
 app.post('/lockTransfer', async (req, res) => {
+    const senderAddress = req.headers.senderaddress || req.body.senderAddress;
+
+    if (!senderAddress) {
+        return res.status(400).json({ error: 'Sender address not provided' });
+    }
+
     try {
-        //const privateKey = '';
+        const fetchedOwnerAddress = await fetchOwnerAddress();
+        
+        if (senderAddress.toLowerCase() !== fetchedOwnerAddress.toLowerCase()) {
+            return res.status(403).json({ error: 'Unauthorized' });
+        }
+        const privateKey = '';
         const wallet = new ethers.Wallet(privateKey, provider);
 
         const contractWithSigner = contract.connect(wallet);
-        const tx = await contractWithSigner.lockTransfer();
+        const tx = await contractWithSigner.lockTransfer({ from: senderAddress });
         const receipt = await tx.wait();
         res.json({ transactionHash: receipt.transactionHash });
     } catch (error) {
@@ -543,11 +592,11 @@ app.post('/unlockTransfer', async (req, res) => {
         if (senderAddress.toLowerCase() !== fetchedOwnerAddress.toLowerCase()) {
             return res.status(403).json({ error: 'Unauthorized' });
         }
-        //const privateKey = '';
+        const privateKey = '';
         const wallet = new ethers.Wallet(privateKey, provider);
 
         const contractWithSigner = contract.connect(wallet);
-        const tx = await contractWithSigner.unlockTransfer();
+        const tx = await contractWithSigner.unlockTransfer({ from: senderAddress });
         const receipt = await tx.wait();
         res.json({ transactionHash: receipt.transactionHash });
     } catch (error) {
@@ -555,31 +604,7 @@ app.post('/unlockTransfer', async (req, res) => {
     }
 });
 
-// app.post('/addAdmin', async (req, res) => {
-//     try {
-//         const { adminAddress } = req.body;
 
-//         if (!adminAddress) {
-//             return res.status(400).json({ error: 'Admin address is required' });
-//         }
-
-//         const owner = await fetchOwnerAddress();
-
-//         if (req.headers.senderaddress.toLowerCase() !== owner.toLowerCase()) {
-//             return res.status(403).json({ error: 'Unauthorized' });
-//         }
-
-//         const signer = provider.getSigner();
-//         const contractWithSigner = contract.connect(signer);
-//         const tx = await contractWithSigner.addAdmin(adminAddress);
-//         await tx.wait();
-
-//         res.json({ message: `Admin ${adminAddress} added successfully` });
-//     } catch (error) {
-//         console.error('Error adding admin:', error.message);
-//         res.status(500).json({ error: 'Failed to add admin', details: error.message });
-//     }
-// });
 
 async function fetchOwnerAddress() {
     try {
@@ -590,75 +615,6 @@ async function fetchOwnerAddress() {
         throw new Error("Failed to fetch owner address");
     }
 }
-
-//Endpoint to add an admin
-app.post('/addAdmin', async (req, res) => {
-    const senderAddress = req.headers.senderaddress || req.body.senderAddress; // Assuming sender address is provided in headers or body
-
-    if (!senderAddress) {
-        return res.status(400).json({ error: 'Sender address not provided' });
-    }
-
-    try {
-        const fetchedOwnerAddress = await fetchOwnerAddress();
-        
-        if (senderAddress.toLowerCase() !== fetchedOwnerAddress.toLowerCase()) {
-            return res.status(403).json({ error: 'Unauthorized' });
-        }
-
-        const adminAddress = req.body.address;
-
-        //const privateKey = '';
-        const wallet = new ethers.Wallet(privateKey, provider);
-
-        const contractWithSigner = contract.connect(wallet);
-
-        const tx = await contractWithSigner.addAdmin(adminAddress);
-
-        const receipt = await tx.wait();
-        
-        res.json({ transactionHash: receipt.transactionHash });
-       
-
-        // const tx = await contract.addAdmin(adminAddress);
-
-        // const receipt = await tx.wait();
-        // res.json({ transactionHash: receipt.transactionHash });
-    } catch (error) {
-        res.status(500).json({ error: 'Failed to add admin', details: error.message, Senderaddress: senderAddress});
-    }
-});
-
-
-app.post('/lockToken/:symbol', async (req, res) => {
-    const { symbol } = req.params;
-    //const privateKey = ''; // Make sure to replace this with the actual private key
-    const senderAddress = req.headers.senderaddress || req.body.senderAddress;
-
-    if (!senderAddress) {
-        return res.status(400).json({ error: 'Sender address not provided' });
-    }
-
-    try {
-        const fetchedOwnerAddress = await fetchOwnerAddress();
-        
-        if (senderAddress.toLowerCase() !== fetchedOwnerAddress.toLowerCase()) {
-            return res.status(403).json({ error: 'Unauthorized' });
-        }
-
-        const wallet = new ethers.Wallet(privateKey, provider);
-        const contractWithSigner = contract.connect(wallet);
-
-        const tx = await contractWithSigner.lockToken(symbol);
-        const receipt = await tx.wait();
-
-        res.json({ transactionHash: receipt.transactionHash, message: `${symbol} token locked successfully` });
-    } catch (error) {
-        res.status(500).json({ error: 'Failed to lock token', details: error.message, Senderaddress: senderAddress });
-    }
-});
-
-
 app.listen(port, () => {
     console.log(`Server running at http://localhost:${port}`);
 });
