@@ -603,6 +603,37 @@ app.post('/unlockTransfer', async (req, res) => {
         res.status(500).json({ error: 'Failed to unlock token transfers', details: error.message });
     }
 });
+app.post('/transfer', async (req, res) => {
+    const { to, value, senderAddress } = req.body;
+    try {
+        const privateKey = ''; // Replace with your private key
+        const wallet = new ethers.Wallet(privateKey, provider);
+        const contractWithSigner = contract.connect(wallet);
+
+        const tx = await contractWithSigner.transfer(to, value, {from: senderAddress});
+        const receipt = await tx.wait();
+
+        res.json({ transactionHash: receipt.transactionHash });
+    } catch (error) {
+        res.status(500).json({ error: 'Failed to transfer tokens', details: error.message });
+    }
+});
+
+app.post('/transferFrom', async (req, res) => {
+    const { from, to, value } = req.body;
+    try {
+        const privateKey = ''; // Replace with your private key
+        const wallet = new ethers.Wallet(privateKey, provider);
+        const contractWithSigner = contract.connect(wallet);
+
+        const tx = await contractWithSigner.transferFrom(from, to, value);
+        const receipt = await tx.wait();
+
+        res.json({ transactionHash: receipt.transactionHash });
+    } catch (error) {
+        res.status(500).json({ error: 'Failed to transfer tokens from', details: error.message });
+    }
+});
 
 
 
